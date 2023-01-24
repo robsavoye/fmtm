@@ -19,22 +19,17 @@
 
 import pytest
 import numpy as np
-import shapely
-#from shapely.geometry import Polygon, shape, GeometryCollection
 from shapely.geometry import shape
-from shapely.prepared import prep
-from shapely import wkt
+import shapely
+# from shapely.prepared import prep
 import geojson
 from geojson import Polygon, Feature, FeatureCollection, dump
 
+file = open("test_boundary.geojson", 'r')
+coords = geojson.load(file)
+boundary = shape(coords['features'][0]['geometry'])
 
-boundary = open("test_boundary.geojson", 'r')
-coords = geojson.load(boundary)
-#print(coords)
-poly = shape(coords['features'][0]['geometry'])
-# xmin,ymin,xmax,ymax =  boundary.total_bounds
-
-minx, miny, maxx, maxy = poly.bounds
+minx, miny, maxx, maxy = boundary.bounds
 delta = 0.005
 nx = int((maxx - minx)/delta)
 ny = int((maxy - miny)/delta)
@@ -44,21 +39,17 @@ json = open("tmp.geojson", 'w')
 id = 0
 for i in range(len(gx)-1):
     for j in range(len(gy)-1):
-        poly = Polygon([[
+        poly = shapely.geometry.Polygon([
             [gx[i],gy[j]],
             [gx[i],gy[j+1]],
             [gx[i+1],gy[j+1]],
             [gx[i+1],gy[j]],
-            [gx[i],gy[j]]],
+            [gx[i],gy[j]],
         ])
-        feature = Feature(geometry=poly, properties={'id': str(id)})
-        id += 1
-        grid.append(feature)
+        if boundary.contains(poly):
+            feature = Feature(geometry=poly, properties={'id': str(id)})
+            id += 1
+            grid.append(feature)
 collection = FeatureCollection(grid)
-
 dump(collection, json)
 
-# def partition(geom, delta):
-#     prepared_geom = prep(geom)
-#     grid = list(filter(prepared_geom.intersects, grid_bounds(geom, delta)))
-#     return grid
